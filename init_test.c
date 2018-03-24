@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "rdmacma.h"
+#include <rdma/rdma_cma.h>
 #define TESTNZ(x)\
 do{ if((x))
 	die("error:"#x"failed(returnednon-zero).");
