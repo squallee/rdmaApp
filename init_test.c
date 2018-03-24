@@ -1,22 +1,22 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
-#include<unistd.h>
-#include<rdma/rdmacma.h>
-#defineTESTNZ(x)\
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include "rdmacma.h"
+#define TESTNZ(x)\
 do{ if((x))
 	die("error:"#x"failed(returnednon-zero).");
 } while(0)
-#defineTESTZ(x)\
+#define TESTZ(x)\
 do{ if(!(x))
 	die("error:"#x"failed(returnedzero/null).");
 } while(0)
 static void die(constchar∗reason);
 int main(intargc,char∗∗argv)
 {
-	return0;
+	return 0;
 }
-voiddie(constchar∗reason)
+void die(constchar∗reason)
 {
 	fprintf(stderr,"%s\n",reason);
 	exit(EXITFAILURE);
