@@ -8,7 +8,7 @@
 #define TEST_NZ(x) do { if ( (x)) die("error: " #x " failed (returned non-zero)." ); } while (0)
 #define TEST_Z(x)  do { if (!(x)) die("error: " #x " failed (returned zero/null)."); } while (0)
 
-const int BUFFER_SIZE = 1024;
+const int BUFFER_SIZE = 524288;//1024;
 const int TIMEOUT_IN_MS = 500; /* ms */
 
 struct context {
@@ -225,9 +225,11 @@ int on_connection(void *context)
   struct connection *conn = (struct connection *)context;
   struct ibv_send_wr wr, *bad_wr = NULL;
   struct ibv_sge sge;
-
-  snprintf(conn->send_region, BUFFER_SIZE, "message from active/client side with pid %d", getpid());
-
+  for (int i = 0; i < BUFFER_SIZE; i++) {
+    conn->send_region[i] = 's';
+  }
+//  snprintf(conn->send_region, BUFFER_SIZE, "message from active/client side with pid %d", getpid());
+  
   printf("connected. posting send...\n");
 
   memset(&wr, 0, sizeof(wr));
