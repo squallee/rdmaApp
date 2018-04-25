@@ -3,11 +3,14 @@
 #include <string.h>
 #include <unistd.h>
 #include <rdma/rdma_cma.h>
+#include <time.h>
+#include <math.h>
+#include <inttypes.h>
 
 #define TEST_NZ(x) do { if ( (x)) die("error: " #x " failed (returned non-zero)." ); } while (0)
 #define TEST_Z(x)  do { if (!(x)) die("error: " #x " failed (returned zero/null)."); } while (0)
 
-const int BUFFER_SIZE = 1024;
+const int BUFFER_SIZE = 524288;
 
 struct context {
   struct ibv_context *ctx;
@@ -188,9 +191,36 @@ void on_completion(struct ibv_wc *wc)
 
   if (wc->opcode & IBV_WC_RECV) {
     struct connection *conn = (struct connection *)(uintptr_t)wc->wr_id;
-
-    printf("received message: %s\n", conn->recv_region);
-
+    struct timespec start, end;
+    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+   /* long ms; // milliseconds
+    time_t s; // seconds
+    float startTime;
+    float endTime;
+    struct timespec spec;
+    clock_gettime(CLOCK_REALTIME, &spec);
+    s = spec.tv_sec;
+    ms = spec.tv_nsec / 1.0e6; // Convert nanoseconds to milliseconds
+    if (ms > 999) {
+      s++;
+      ms = 0;
+    }
+    startTime = s + ms / 1000;
+    printf("s.ms before: %"PRIdMAX".%03ld\n", (intmax_t)s, ms);*/
+    printf("received message: %s\n", conn->recv_region); // print received data
+/*    clock_gettime(CLOCK_REALTIME, &spec);
+    s = spec.tv_sec;
+    ms = spec.tv_nsec / 1.0e6; 
+    printf("s.ms after: %"PRIdMAX".%03ld\n", (intmax_t)s, ms);
+    if (ms > 999) {
+      s++;
+      ms = 0;
+    }
+    endTime = s + ms / 1000;
+    printf("time cost: %f\n",endTime - startTime);*/
+    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+    long delta = (end.tv_sec -start.tv_sec) * 1000000 + (end.tv_nsec - start.tv_nsec) / 1000;
+    printf("diff: %ld\n", delta);
   } else if (wc->opcode == IBV_WC_SEND) {
     printf("send completed successfully.\n");
   }
