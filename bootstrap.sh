@@ -7,7 +7,7 @@ cat keys/id_rsa.pub >> ~/.ssh/authorized_keys
 # Ensure that ssh works without asking for Authenticity to be accepted
 ## TODO: for hosts: ssh-keyscan $host >> ~/.ssh/known_hosts
 
-# Setup env variable for the git repo
+# Setup env v                                     ariable for the git repo
 cd ..
 ROGUE_HOME=`pwd`
 echo "export ROGUE_HOME=$ROGUE_HOME" >> ~/.bashrc

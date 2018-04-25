@@ -1,0 +1,190 @@
+- hosts: all
+  tags: package
+  vars:
+    - sockperf_src: "/tmp/sockperf"
+    - ofed_url: "http://content.mellanox.com/ofed/MLNX_OFED-4.1-1.0.2.0/MLNX_OFED_LINUX-4.1-1.0.2.0-ubuntu16.04-x86_64.tgz"
+    - ofed_dir: "MLNX_OFED_LINUX-4.1-1.0.2.0-ubuntu16.04-x86_64"
+    - mft_url: "http://www.mellanox.com/downloads/MFT/mft-4.7.0-42-x86_64-deb.tgz"
+    - mft_dir: "mft-4.7.0-42-x86_64-deb"
+  tasks:
+
+    - name: Install packages via apt
+      apt: name={{item}} state=latest update_cache=yes
+      become: true
+      with_items:
+        - ca-certificates
+        - build-essential
+        - autoconf
+        - automake
+        - libtool
+        - make
+        - cmake
+        - gcc-5-plugin-dev
+        - libpcap-dev
+        - libssl-dev
+        - kernel-package
+        - curl
+        - git
+        - linux-headers-generic
+        - lcov
+        - python
+        - python-dev
+        - python-pip
+        - python-scapy
+        - python-numpy
+        - python-scipy
+        - python-paramiko
+        - python-argparse
+        - python-matplotlib
+        - python-yaml
+        - python-autopep8
+        - python-libxml2
+        - libmlx4-1
+        - infiniband-diags
+        - ibutils
+        - ibverbs-utils
+        # rdmacm-utils gets overwritten by OFED later.
+        #- rdmacm-utils
+
+        - perftest
+        - tgt
+        - targetcli
+        - iperf3
+        - dkms
+        - dpatch
+        - libnl-route-3-200
+        - libgfortran3
+        - swig
+        - tk
+        - gfortran
+        - quilt
+        - chrpath
+        - libnuma1
+        - libnuma-dev
+        - libpthread-workqueue-dev
+        - htop
+        - dstat
+        - ipython
+        - vim
+
+        # Although it would be desirable to use as new of a kernel version as
+        # possible, OFED + Linux 4.11 cause a kernel crash related to RDMA
+        # cgroups.
+        #- linux-headers-4.11.0-13
+        #- linux-image-4.11.0-13-lowlatency
+        #- linux-source-4.11.0
+
+    - name: Install Linux headers of current running kernel
+      apt: name=linux-headers-{{ ansible_kernel }} state=latest update_cache=yes
+      become: true
+      when: ansible_kernel | match(".*-generic")
+
+    - name: Install python packages
+      pip:
+        name:
+          # TODO: on Ubuntu versions newer than 16.04, grip can be installed by apt
+          - grip
+          - "git+https://github.com/niligulmohar/python-symmetric-jsonrpc"
+        editable: false
+      become: true
+
+    - name: Try to copy OFED
+      copy:
+        src: "{{ playbook_dir }}/{{ ofed_dir }}.tgz"
+        dest: /tmp/{{ ofed_dir }}.tgz
+      register: ofed_copy_result
+      ignore_errors: True
+
+    - name: Download OFED
+      get_url: url={{ ofed_url }} dest=/tmp/{{ ofed_dir }}.tgz
+      when: ofed_copy_result|failed
+
+    - name: Extract OFED
+      unarchive:
+        copy: no
+        src: /tmp/{{ ofed_dir }}.tgz
+        dest: /tmp
+        creates: /tmp/{{ ofed_dir }}
+
+    - name: Check if OFED is already installed
+      shell: ibv_devices | grep mlx
+      register: ofed_install_result
+      ignore_errors: True
+      changed_when: ofed_install_result|failed
+
+    - name: Install OFED
+      shell: ./mlnxofedinstall --force chdir=/tmp/{{ ofed_dir }}
+      become: true
+      when: ofed_install_result|failed
+
+    # TODO: this probably isn't needed
+    - name: sudo ldconfig
+      shell: ldconfig
+      become: true
+
+    - name: Try to copy MFT
+      copy:
+        src: "{{ playbook_dir }}/{{ mft_dir }}.tgz"
+        dest: /tmp/{{ mft_dir }}.tgz
+      register: mft_copy_result
+      ignore_errors: True
+
+    - name: Download MFT
+      get_url: url={{ mft_url }} dest=/tmp/{{ mft_dir }}.tgz
+      when: mft_copy_result|failed
+
+    - name: Extract MFT
+      unarchive:
+        copy: no
+        src: /tmp/{{ mft_dir }}.tgz
+        dest: /tmp
+        creates: /tmp/{{ mft_dir }}
+
+    - name: Check if MFT is already installed
+      shell: mst start
+      register: mft_install_result
+      ignore_errors: True
+      changed_when: mft_install_result|failed
+      become: true
+
+    - name: Install MFT
+      shell: ./install.sh chdir=/tmp/{{ mft_dir }}
+      become: true
+      when: mft_install_result|failed
+
+    # TODO: automate configuring the NIC for packet pacing.  XXX: This may not
+    # be safe on ConnectX-3 Pro NICs, so I'm leaving this part of the
+    # configuration as manual for now.
+    #- name: Configure the NIC firmware to support packet pacing
+    #  shell: ./config_packet_pacing.sh chdir="{{ playbook_dir }}/../conf/"
+    #  become: true
+
+    - name: Download sockperf
+      git: repo=https://github.com/Mellanox/sockperf dest={{ sockperf_src }} accept_hostkey=yes
+
+    - name: Verify sockperf installation
+      command: which sockperf
+      register: sockperf_installed
+      ignore_errors: True
+      changed_when: False
+
+    - name: Autogen sockperf
+      shell: ./autogen.sh 
+      args:
+        chdir: "{{ sockperf_src }}"
+        creates: "{{ sockperf_src }}/configure"
+      when: sockperf_installed.rc > 0
+    
+    - name: Configure sockperf
+      shell: ./configure 
+      args:
+        chdir: "{{ sockperf_src }}"
+        creates: "{{ sockperf_src }}/Makefile"
+      when: sockperf_installed.rc > 0
+    
+    - name: Make and install sockperf
+      become: true
+      shell: make && make install 
+      args:
+        chdir: "{{ sockperf_src }}"
+      when: sockperf_installed.rc > 0

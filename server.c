@@ -43,7 +43,7 @@ static int on_disconnect(struct rdma_cm_id *id);
 static int on_event(struct rdma_cm_event *event);
 
 static struct context *s_ctx = NULL;
-
+                                
 int main(int argc, char **argv)
 {
   struct sockaddr_in addr;
