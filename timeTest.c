@@ -39,6 +39,10 @@ int main()
 	struct timespec start, end;
 	clock_gettime(CLOCK_MONOTONIC_RAW, &start);
 	//do stuff
+    for (int i = 0; i < 10000000; i++) {
+        int t = 0;
+        t++;
+    }
 	clock_gettime(CLOCK_MONOTONIC_RAW, &end);
 
 	int delta_us = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_nsec - start.tv_nsec) / 1000;
