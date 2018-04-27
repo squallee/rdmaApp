@@ -49,7 +49,7 @@ static int on_event(struct rdma_cm_event *event);
 static int on_route_resolved(struct rdma_cm_id *id);
 
 static struct context *s_ctx = NULL;
-
+static char content[10] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'};
 int main(int argc, char **argv)
 {
   struct addrinfo *addr;
@@ -68,14 +68,16 @@ int main(int argc, char **argv)
 
   freeaddrinfo(addr);
 
-  while (rdma_get_cm_event(ec, &event) == 0) {
-    struct rdma_cm_event event_copy;
+  for (int i = 0; i < 10; i++) {
+    while (rdma_get_cm_event(ec, &event) == 0) {
+      struct rdma_cm_event event_copy;
 
-    memcpy(&event_copy, event, sizeof(*event));
-    rdma_ack_cm_event(event);
+      memcpy(&event_copy, event, sizeof(*event));
+      rdma_ack_cm_event(event);
 
-    if (on_event(&event_copy))
-      break;
+      if (on_event(&event_copy))
+        break;
+    }
   }
 
   rdma_destroy_event_channel(ec);
@@ -225,8 +227,8 @@ int on_connection(void *context)
   struct connection *conn = (struct connection *)context;
   struct ibv_send_wr wr, *bad_wr = NULL;
   struct ibv_sge sge;
-  for (int i = 0; i < BUFFER_SIZE; i++) {
-    conn->send_region[i] = 's';
+  for (int i = 0; i < 10; i++) {
+    conn->send_region[i] = content[i];
   }
 //  snprintf(conn->send_region, BUFFER_SIZE, "message from active/client side with pid %d", getpid());
   
