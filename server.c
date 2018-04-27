@@ -46,7 +46,7 @@ static int on_disconnect(struct rdma_cm_id *id);
 static int on_event(struct rdma_cm_event *event);
 
 static struct context *s_ctx = NULL;
-                                
+int count = 0; // count the number of client sent                                
 int main(int argc, char **argv)
 {
 #if _USE_IPV6
@@ -76,18 +76,22 @@ int main(int argc, char **argv)
   printf("listening on port %d.\n", port);
 
   struct timespec start, end;
-  clock_gettime(CLOCK_MONOTONIC_RAW, &start);  
+  
 
   while (rdma_get_cm_event(ec, &event) == 0) {
+    if (count == 0) {
+      clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+    }
     struct rdma_cm_event event_copy;
 
     memcpy(&event_copy, event, sizeof(*event));
     rdma_ack_cm_event(event);
-
+    if ( count == 10) {
+      clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+    }
     if (on_event(&event_copy))
       break;
   }
-  clock_gettime(CLOCK_MONOTONIC_RAW, &end);
   int delta_us = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_nsec - start.tv_nsec) / 1000;
   printf("time ms: %d\n", delta_us);
   
@@ -197,14 +201,14 @@ void on_completion(struct ibv_wc *wc)
 
   if (wc->opcode & IBV_WC_RECV) {
     struct connection *conn = (struct connection *)(uintptr_t)wc->wr_id;
-    struct timespec start, end;
-    clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+    // struct timespec start, end;
+    // clock_gettime(CLOCK_MONOTONIC_RAW, &start);
 
     printf("received message: %s\n", conn->recv_region); // print received data
-
-    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-    long delta = (end.tv_sec -start.tv_sec) * 1000000 + (end.tv_nsec - start.tv_nsec) / 1000;
-    printf("diff: %ld\n", delta);
+    count++;
+    // clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+    // long delta = (end.tv_sec -start.tv_sec) * 1000000 + (end.tv_nsec - start.tv_nsec) / 1000;
+    // printf("diff: %ld\n", delta);
   } else if (wc->opcode == IBV_WC_SEND) {
     printf("send completed successfully.\n");
   }
