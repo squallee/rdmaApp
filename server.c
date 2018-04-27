@@ -75,6 +75,9 @@ int main(int argc, char **argv)
 
   printf("listening on port %d.\n", port);
 
+  struct timespec start, end;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &start);  
+
   while (rdma_get_cm_event(ec, &event) == 0) {
     struct rdma_cm_event event_copy;
 
@@ -84,7 +87,10 @@ int main(int argc, char **argv)
     if (on_event(&event_copy))
       break;
   }
-
+  clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+  int delta_us = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_nsec - start.tv_nsec) / 1000;
+  printf("time ms: %d\n", delta_us);
+  
   rdma_destroy_id(listener);
   rdma_destroy_event_channel(ec);
 
