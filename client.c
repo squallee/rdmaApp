@@ -59,16 +59,16 @@ int main(int argc, char **argv)
 
   if (argc != 3)
     die("usage: client <server-address> <server-port>");
-
-  TEST_NZ(getaddrinfo(argv[1], argv[2], NULL, &addr));
-
-  TEST_Z(ec = rdma_create_event_channel());
-  TEST_NZ(rdma_create_id(ec, &conn, NULL, RDMA_PS_TCP));
-  TEST_NZ(rdma_resolve_addr(conn, NULL, addr->ai_addr, TIMEOUT_IN_MS));
-
-  freeaddrinfo(addr);
-
   for (int i = 0; i < 10; i++) {
+    TEST_NZ(getaddrinfo(argv[1], argv[2], NULL, &addr));
+
+    TEST_Z(ec = rdma_create_event_channel());
+    TEST_NZ(rdma_create_id(ec, &conn, NULL, RDMA_PS_TCP));
+    TEST_NZ(rdma_resolve_addr(conn, NULL, addr->ai_addr, TIMEOUT_IN_MS));
+
+    freeaddrinfo(addr);
+
+  
     while (rdma_get_cm_event(ec, &event) == 0) {
       struct rdma_cm_event event_copy;
 
