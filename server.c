@@ -88,12 +88,13 @@ int main(int argc, char **argv)
     rdma_ack_cm_event(event);
     if ( count == 10) {
       clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+      int delta_us = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_nsec - start.tv_nsec) / 1000;
+      printf("time ms: %d\n", delta_us);
     }
     if (on_event(&event_copy))
       break;
   }
-  int delta_us = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_nsec - start.tv_nsec) / 1000;
-  printf("time ms: %d\n", delta_us);
+
   
   rdma_destroy_id(listener);
   rdma_destroy_event_channel(ec);
