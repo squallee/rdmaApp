@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 
   freeaddrinfo(addr);
 
-  for (int i = 0; i < 10; i++) {
+  for (int i = 0; i < 2; i++) {
     while (rdma_get_cm_event(ec, &event) == 0) {
       struct rdma_cm_event event_copy;
 
