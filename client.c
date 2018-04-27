@@ -226,7 +226,8 @@ int on_connection(void *context)
   struct ibv_send_wr wr, *bad_wr = NULL;
   struct ibv_sge sge;
   for (int i = 0; i < 10; i++) {
-    conn->send_region = content[i];
+    conn->send_region[0] = content[i];
+    //  snprintf(conn->send_region, BUFFER_SIZE, "message from active/client side with pid %d", getpid());
     printf("connected. posting send...\n");
 
     memset(&wr, 0, sizeof(wr));
@@ -243,7 +244,7 @@ int on_connection(void *context)
 
     TEST_NZ(ibv_post_send(conn->qp, &wr, &bad_wr));
   }
-//  snprintf(conn->send_region, BUFFER_SIZE, "message from active/client side with pid %d", getpid());
+
   
   return 0;
 }
