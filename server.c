@@ -46,7 +46,9 @@ static int on_disconnect(struct rdma_cm_id *id);
 static int on_event(struct rdma_cm_event *event);
 
 static struct context *s_ctx = NULL;
-int count = 0; // count the number of client sent                                
+int count = 0; // count the number of client sent   
+struct timespec start, end;              
+               
 int main(int argc, char **argv)
 {
 #if _USE_IPV6
@@ -75,7 +77,7 @@ int main(int argc, char **argv)
 
   printf("listening on port %d.\n", port);
 
-  struct timespec start, end;
+
   
 
   while (rdma_get_cm_event(ec, &event) == 0) {
@@ -86,12 +88,7 @@ int main(int argc, char **argv)
 
     memcpy(&event_copy, event, sizeof(*event));
     rdma_ack_cm_event(event);
-    if ( count == 2) {
-      count++;
-      clock_gettime(CLOCK_MONOTONIC_RAW, &end);
-      int delta_us = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_nsec - start.tv_nsec) / 1000;
-      printf("time ms: %d\n", delta_us);
-    }
+
     if (on_event(&event_copy))
       break;
   }
@@ -272,7 +269,12 @@ int on_disconnect(struct rdma_cm_id *id)
   struct connection *conn = (struct connection *)id->context;
 
   printf("peer disconnected.\n");
-
+  if ( count == 2) {
+    count++;
+    clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+    int delta_us = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_nsec - start.tv_nsec) / 1000;
+    printf("time ms: %d\n", delta_us);
+  }
   rdma_destroy_qp(id);
 
   ibv_dereg_mr(conn->send_mr);
