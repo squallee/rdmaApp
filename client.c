@@ -59,29 +59,23 @@ int main(int argc, char **argv)
 
   if (argc != 3)
     die("usage: client <server-address> <server-port>");
-  for (int i = 0; i < 2; i++) {
-    TEST_NZ(getaddrinfo(argv[1], argv[2], NULL, &addr));
 
-    TEST_Z(ec = rdma_create_event_channel());
-    TEST_NZ(rdma_create_id(ec, &conn, NULL, RDMA_PS_TCP));
-    TEST_NZ(rdma_resolve_addr(conn, NULL, addr->ai_addr, TIMEOUT_IN_MS));
+  TEST_NZ(getaddrinfo(argv[1], argv[2], NULL, &addr));
 
-    freeaddrinfo(addr);
+  TEST_Z(ec = rdma_create_event_channel());
+  TEST_NZ(rdma_create_id(ec, &conn, NULL, RDMA_PS_TCP));
+  TEST_NZ(rdma_resolve_addr(conn, NULL, addr->ai_addr, TIMEOUT_IN_MS));
 
+  freeaddrinfo(addr);
 
-  
+  while (rdma_get_cm_event(ec, &event) == 0) {
+    struct rdma_cm_event event_copy;
 
+    memcpy(&event_copy, event, sizeof(*event));
+    rdma_ack_cm_event(event);
 
-
-    while (rdma_get_cm_event(ec, &event) == 0) {
-      struct rdma_cm_event event_copy;
-
-      memcpy(&event_copy, event, sizeof(*event));
-      rdma_ack_cm_event(event);
-
-      if (on_event(&event_copy))
-        break;
-    }
+    if (on_event(&event_copy))
+      break;
   }
 
   rdma_destroy_event_channel(ec);
@@ -232,26 +226,25 @@ int on_connection(void *context)
   struct ibv_send_wr wr, *bad_wr = NULL;
   struct ibv_sge sge;
   for (int i = 0; i < 10; i++) {
-    conn->send_region[i] = content[i];
+    conn->send_region = content[i];
+    printf("connected. posting send...\n");
+
+    memset(&wr, 0, sizeof(wr));
+
+    wr.wr_id = (uintptr_t)conn;
+    wr.opcode = IBV_WR_SEND;
+    wr.sg_list = &sge;
+    wr.num_sge = 1;
+    wr.send_flags = IBV_SEND_SIGNALED;
+
+    sge.addr = (uintptr_t)conn->send_region;
+    sge.length = BUFFER_SIZE;
+    sge.lkey = conn->send_mr->lkey;
+
+    TEST_NZ(ibv_post_send(conn->qp, &wr, &bad_wr));
   }
 //  snprintf(conn->send_region, BUFFER_SIZE, "message from active/client side with pid %d", getpid());
   
-  printf("connected. posting send...\n");
-
-  memset(&wr, 0, sizeof(wr));
-
-  wr.wr_id = (uintptr_t)conn;
-  wr.opcode = IBV_WR_SEND;
-  wr.sg_list = &sge;
-  wr.num_sge = 1;
-  wr.send_flags = IBV_SEND_SIGNALED;
-
-  sge.addr = (uintptr_t)conn->send_region;
-  sge.length = BUFFER_SIZE;
-  sge.lkey = conn->send_mr->lkey;
-
-  TEST_NZ(ibv_post_send(conn->qp, &wr, &bad_wr));
-
   return 0;
 }
 

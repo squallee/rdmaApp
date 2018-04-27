@@ -77,9 +77,6 @@ int main(int argc, char **argv)
 
   printf("listening on port %d.\n", port);
 
-
-  
-
   while (rdma_get_cm_event(ec, &event) == 0) {
     if (count == 0) {
       clock_gettime(CLOCK_MONOTONIC_RAW, &start);
@@ -92,7 +89,6 @@ int main(int argc, char **argv)
     if (on_event(&event_copy))
       break;
   }
-
   
   rdma_destroy_id(listener);
   rdma_destroy_event_channel(ec);
