@@ -12,6 +12,7 @@
 
 const int BUFFER_SIZE = 1024;
 
+
 struct context {
   struct ibv_context *ctx;
   struct ibv_pd *pd;
